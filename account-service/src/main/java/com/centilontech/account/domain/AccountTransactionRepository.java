@@ -5,5 +5,6 @@ import java.util.*;
 
 public interface AccountTransactionRepository extends JpaRepository<AccountTransaction, Long> {
     Optional<AccountTransaction> findByEventId(String eventId);
+
     List<AccountTransaction> findByAccountIdOrderByEventTimestampAsc(String accountId);
 }

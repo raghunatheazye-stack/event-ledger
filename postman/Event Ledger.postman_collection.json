@@ -1,0 +1,397 @@
+{
+  "info": {
+    "_postman_id": "a15fce21-22bc-4a3d-8d4b-event-ledger",
+    "name": "Event Ledger",
+    "description": "Postman collection for the Event Ledger Spring Boot services. Run account-service on port 8081 and event-gateway on port 8080, or use docker compose from the repository root.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "event-gateway",
+      "description": "Public API exposed by event-gateway on port 8080.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/health",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit CREDIT Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created or duplicate', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('eventId', json.eventId);",
+                  "pm.environment.set('accountId', json.accountId);",
+                  "if (json.traceId) pm.environment.set('traceId', json.traceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "{{traceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"accountId\": \"{{accountId}}\",\n  \"type\": \"CREDIT\",\n  \"amount\": 150.00,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T14:02:11Z\",\n  \"metadata\": {\n    \"source\": \"postman\",\n    \"batchId\": \"B-9042\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/events",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Creates a gateway event, forwards it to account-service, and stores it only after the account transaction succeeds. Re-running with the same eventId should return 200 with duplicate=true."
+          }
+        },
+        {
+          "name": "Submit DEBIT Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "{{traceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"evt-postman-002\",\n  \"accountId\": \"{{accountId}}\",\n  \"type\": \"DEBIT\",\n  \"amount\": 50.00,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T13:00:00Z\",\n  \"metadata\": {\n    \"source\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/events",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Submits a debit event. The API lists events chronologically by eventTimestamp, not arrival order."
+          }
+        },
+        {
+          "name": "Get Event By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/events/{{eventId}}",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Events By Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/events?account={{accountId}}",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "account",
+                  "value": "{{accountId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Events Submitted Metric",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/actuator/metrics/events.submitted",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "metrics",
+                "events.submitted"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Events Duplicates Metric",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/actuator/metrics/events.duplicates",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "metrics",
+                "events.duplicates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validation Example - Zero Amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"evt-postman-bad\",\n  \"accountId\": \"{{accountId}}\",\n  \"type\": \"CREDIT\",\n  \"amount\": 0,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T13:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/events",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "events"
+              ]
+            },
+            "description": "Expected response: 400 Bad Request."
+          }
+        }
+      ]
+    },
+    {
+      "name": "account-service",
+      "description": "Internal account ledger API exposed by account-service on port 8081.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{accountBaseUrl}}/health",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Apply CREDIT Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created or duplicate', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.environment.set('eventId', json.eventId);",
+                  "pm.environment.set('accountId', json.accountId);",
+                  "if (json.traceId) pm.environment.set('traceId', json.traceId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "{{traceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"type\": \"CREDIT\",\n  \"amount\": 150.00,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T14:02:11Z\"\n}"
+            },
+            "url": {
+              "raw": "{{accountBaseUrl}}/accounts/{{accountId}}/transactions",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}",
+                "transactions"
+              ]
+            },
+            "description": "Applies a transaction directly to account-service. Re-running with the same eventId should return 200 with duplicate=true."
+          }
+        },
+        {
+          "name": "Apply DEBIT Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Trace-Id",
+                "value": "{{traceId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"acct-direct-debit-001\",\n  \"type\": \"DEBIT\",\n  \"amount\": 50.00,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T13:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{accountBaseUrl}}/accounts/{{accountId}}/transactions",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}",
+                "transactions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{accountBaseUrl}}/accounts/{{accountId}}/balance",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}",
+                "balance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Account With Transactions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{accountBaseUrl}}/accounts/{{accountId}}",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validation Example - Unknown Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"acct-direct-bad-001\",\n  \"type\": \"OTHER\",\n  \"amount\": 1.00,\n  \"currency\": \"USD\",\n  \"eventTimestamp\": \"2026-05-15T13:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{accountBaseUrl}}/accounts/{{accountId}}/transactions",
+              "host": [
+                "{{accountBaseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountId}}",
+                "transactions"
+              ]
+            },
+            "description": "Expected response: 400 Bad Request."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "gatewayBaseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "accountBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "accountId",
+      "value": "acct-123"
+    },
+    {
+      "key": "eventId",
+      "value": "evt-postman-001"
+    },
+    {
+      "key": "traceId",
+      "value": "postman-trace-001"
+    }
+  ]
+}

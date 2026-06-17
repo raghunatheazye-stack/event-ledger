@@ -1,2 +1,5 @@
 package com.centilontech.gateway.domain;
-public enum EventStatus { APPLIED }
+
+public enum EventStatus {
+    APPLIED
+}
