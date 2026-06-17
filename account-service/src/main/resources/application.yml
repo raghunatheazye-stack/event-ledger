@@ -1,0 +1,10 @@
+server:
+  port: 8081
+spring:
+  application.name: account-service
+  datasource:
+    url: jdbc:h2:mem:accounts;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+  jpa:
+    hibernate.ddl-auto: create-drop
+    open-in-view: false
+management.endpoints.web.exposure.include: health,metrics
